@@ -1,0 +1,3 @@
+rootProject.name = 'lc2'
+include 'shared'
+include 'jlfind'

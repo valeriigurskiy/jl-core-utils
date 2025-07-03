@@ -1,0 +1,20 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.graalvm.buildtools.native' version '0.10.6'
+}
+
+group = 'com.vh'
+version = '1.0-SNAPSHOT'
+
+application {
+    mainClass = 'com.vh.JLFind'
+}
+
+dependencies {
+    implementation(project(":shared"))
+}
+
+repositories {
+    mavenCentral()
+}
