@@ -16,11 +16,13 @@ public class JLFind extends RecursiveTask<ConcurrentLinkedQueue<Path>> {
     private final Path dir;
     private final Pattern fileNamePattern;
     private final boolean contains;
+    private final boolean followSymbolLinks;
 
-    public JLFind(Path dir, Pattern fileNamePattern, boolean contains) {
+    public JLFind(Path dir, Pattern fileNamePattern, boolean contains, boolean followSymbolLinks) {
         this.dir = dir;
         this.fileNamePattern = fileNamePattern;
         this.contains = contains;
+        this.followSymbolLinks = followSymbolLinks;
     }
 
     @Override
@@ -30,14 +32,19 @@ public class JLFind extends RecursiveTask<ConcurrentLinkedQueue<Path>> {
 
         try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(dir)) {
             for (Path path : directoryStream) {
-                if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
-                    JLFind subtask = new JLFind(path, fileNamePattern, contains);
+                if (isDirectory(path)) {
+                    JLFind subtask = new JLFindBuilder()
+                            .dir(path)
+                            .fileNamePattern(fileNamePattern)
+                            .contains(contains)
+                            .followSymbolLinks(followSymbolLinks)
+                            .build();
+
                     subtask.fork();
                     subtasks.add(subtask);
                 }
 
                 String fileName = path.getFileName().toString();
-                
                 if (matches(fileName)) {
                     paths.add(path);
                 }
@@ -49,6 +56,12 @@ public class JLFind extends RecursiveTask<ConcurrentLinkedQueue<Path>> {
         }
 
         return paths;
+    }
+
+    private boolean isDirectory(Path path) {
+        return followSymbolLinks
+                ? Files.isDirectory(path)
+                : Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS);
     }
 
     private boolean matches(String fileName) {

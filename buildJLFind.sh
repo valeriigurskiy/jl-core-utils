@@ -1,0 +1,1 @@
+./gradlew :jlfind:clean :jlfind:nativeBuild

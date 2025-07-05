@@ -10,8 +10,8 @@ dependencies {
 graalvmNative {
     binaries {
         main {
-            imageName = 'jlfind'
-            mainClass = 'com.vh.JLFindMain'
+            imageName = 'jlls'
+            mainClass = 'com.vh.JLLsMain'
             buildArgs = [
                     '--no-fallback',
                     '-O2',
@@ -20,4 +20,3 @@ graalvmNative {
         }
     }
 }
-
