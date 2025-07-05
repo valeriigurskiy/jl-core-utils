@@ -1,8 +1,0 @@
-Usage: jlfind <path> [OPTIONS]
-
-    Arguments:
-    <path>           Root directory to start the search from
-
-    Options:
-    -n, --name       One or more file names to search for
-    -c, --contains   Filename should contain argument value
