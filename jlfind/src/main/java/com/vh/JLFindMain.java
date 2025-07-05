@@ -1,12 +1,13 @@
 package com.vh;
 
+import static com.vh.CliUtils.errorExit;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ForkJoinPool;
 import java.util.regex.Pattern;
-
-import static com.vh.CliUtils.errorExit;
 
 public class JLFindMain {
     public static void main(String[] args) {
@@ -68,20 +69,24 @@ public class JLFindMain {
 
         Pattern pattern = Pattern.compile(regexBuilder.toString());
 
-        List<Path> results = new JLFind(root, pattern, contains).compute();
-        results.forEach(System.out::println);
+        try (ForkJoinPool pool = new ForkJoinPool()) {
+            JLFind jlFind = new JLFind(root, pattern, contains);
+            
+            ConcurrentLinkedQueue<Path> paths = jlFind.compute(); 
+            paths.forEach(System.out::println);
+        }
     }
 
     private static void printUsageAndExit() {
         System.out.println("""
-            Usage: jlfind <path> [OPTIONS]
+        Usage: jlfind <path> [OPTIONS]
 
-            Arguments:
-                <path>           Root directory to start the search from
-        
-            Options:
-                -n, --name       One or more file names to search for
-                -c, --contains   Filename should contain argument value
+        Arguments:
+            <path>           Root directory to start the search from
+
+        Options:
+            -n, --name       One or more file names to search for
+            -c, --contains   Filename should contain argument value
         """
         );
         System.exit(1);

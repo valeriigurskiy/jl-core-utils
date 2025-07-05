@@ -3,14 +3,15 @@ package com.vh;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.RecursiveTask;
 import java.util.regex.Pattern;
 
-public class JLFind extends RecursiveTask<List<Path>> {
+public class JLFind extends RecursiveTask<ConcurrentLinkedQueue<Path>> {
 
     private final Path dir;
     private final Pattern fileNamePattern;
@@ -23,39 +24,36 @@ public class JLFind extends RecursiveTask<List<Path>> {
     }
 
     @Override
-    protected List<Path> compute() {
-        List<Path> foundPaths = new ArrayList<>();
+    protected ConcurrentLinkedQueue<Path> compute() {
         List<JLFind> subtasks = new ArrayList<>();
+        ConcurrentLinkedQueue<Path> paths = new ConcurrentLinkedQueue<>();
 
         try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(dir)) {
-            directoryStream.forEach(path -> {
-                if (Files.isDirectory(path) && !Files.isSymbolicLink(path)) {
+            for (Path path : directoryStream) {
+                if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
                     JLFind subtask = new JLFind(path, fileNamePattern, contains);
                     subtask.fork();
                     subtasks.add(subtask);
-                } else if (Files.isRegularFile(path)) {
-                    String fileName = path.getFileName().toString();
-                    boolean matches = contains
-                            ? fileNamePattern.matcher(fileName).find()
-                            : fileNamePattern.matcher(fileName).matches();
-                    if (matches) {
-                        foundPaths.add(path);
-                    }
                 }
-            });
+
+                String fileName = path.getFileName().toString();
+                
+                if (matches(fileName)) {
+                    paths.add(path);
+                }
+            }
         } catch (IOException | SecurityException ignored) { }
 
         for (JLFind subtask : subtasks) {
-            foundPaths.addAll(subtask.join());
+            paths.addAll(subtask.join());
         }
 
-        return foundPaths;
+        return paths;
     }
 
-    public List<Path> search() {
-        try (ForkJoinPool pool = new ForkJoinPool()) {
-            JLFind task = new JLFind(dir, fileNamePattern, contains);
-            return pool.invoke(task);
-        }
+    private boolean matches(String fileName) {
+        return contains
+            ? fileNamePattern.matcher(fileName).find()
+            : fileNamePattern.matcher(fileName).matches();
     }
 }
